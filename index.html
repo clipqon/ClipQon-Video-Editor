@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="gu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CLIPQON Video Editor</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="app-container">
+    <header>
+        <div class="header-left">CLIP<span>Q</span>ON</div>
+        <div class="header-center">
+            <button class="r-btn" id="ratio-toggle">Ratio: <span id="cur-label">Original</span></button>
+            <button class="r-btn" id="fps-toggle">Pts/Sec: <span id="cur-fps">30</span></button>
+        </div>
+        <div class="header-right">
+            <button class="r-btn" id="res-toggle">Res: <span id="cur-res">720p</span></button>
+            <button class="set-btn" id="import-trigger" style="background:var(--red); color:#fff;">IMPORT</button>
+        </div>
+
+        <div id="ratio-menu">
+            <div class="grid-3">
+                <div class="r-btn active" data-ratio="original" data-label="Original">Original</div>
+                <div class="r-btn" data-ratio="0.5625" data-label="9:16">9:16</div>
+                <div class="r-btn" data-ratio="1.7777" data-label="16:9">16:9</div>
+                <div class="r-btn" data-ratio="1" data-label="1:1">1:1</div>
+                <div class="r-btn" data-ratio="0.75" data-label="3:4">3:4</div>
+                <div class="r-btn" data-ratio="1.3333" data-label="4:3">4:3</div>
+            </div>
+        </div>
+
+        <div id="fps-menu">
+             <div class="grid-3">
+                <div class="fps-item r-btn" data-fps="5">5</div>
+                <div class="fps-item r-btn" data-fps="10">10</div>
+                <div class="fps-item r-btn" data-fps="15">15</div>
+                <div class="fps-item r-btn" data-fps="20">20</div>
+                <div class="fps-item r-btn active" data-fps="30">30</div>
+                <div class="fps-item r-btn" data-fps="60">60</div>
+            </div>
+        </div>
+
+        <div id="res-menu">
+            <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap:8px;">
+                <div class="res-item r-btn" data-res="480">480p</div>
+                <div class="res-item r-btn active" data-res="720">720p</div>
+                <div class="res-item r-btn" data-res="1080">1080p</div>
+                <div class="res-item r-btn" data-res="2160">4K</div>
+            </div>
+        </div>
+    </header>
+
+    <main id="viewport">
+        <div id="canvas-box">
+            <div class="guide v-guide" id="vg" style="left:50%; display:none;"></div>
+            <div class="guide h-guide" id="hg" style="top:50%; display:none;"></div>
+            <img id="gif-canvas-overlay" src="" style="display:none; position:absolute; pointer-events:none;">
+            <canvas id="mainCanvas"></canvas>
+        </div>
+    </main>
+
+    <div class="main-toolbar" id="main-toolbar-container">
+        <div class="teleport-area area-left">
+            <div class="teleport-track" id="main-track-left">
+                <button class="t-btn" id="btn-fit"><span>◫</span>Fit</button>
+                <button class="t-btn" id="btn-delete-shortcut"><span style="color:var(--red);">⌧</span>Delete</button>
+                <button class="t-btn" id="btn-split-shortcut"><span style="color:var(--red);">✂</span>Split</button>
+                <button class="t-btn" id="btn-vol-shortcut" onclick="openVolume()"><span>🔊</span>Volume</button>
+                <button class="t-btn" id="btn-hsl-shortcut"><span>🎨</span>HSL</button>
+            </div>
+        </div>
+
+        <div class="fixed-center-buttons">
+            <button class="t-btn" id="btn-undo"><span>↩</span>Undo</button>
+            <button class="t-btn main-play-btn" id="btn-play"><span>▶</span>Play</button>
+            <button class="t-btn" id="btn-redo"><span>↪</span>Redo</button>
+        </div>
+
+        <div class="teleport-area area-right">
+            <div class="teleport-track" id="main-track-right">
+                <button class="t-btn" id="btn-front"><span>⇧</span>Front</button>
+                <button class="t-btn" id="btn-copy-shortcut"><span>⧉</span>Copy</button>
+                <button class="t-btn" id="btn-speed-shortcut"><span>⚡</span>Speed</button>
+                <button class="t-btn" id="btn-fade"><span>📉</span>Fade</button>
+                <button class="t-btn" id="btn-expand"><span style="color: #00d2ff;">🌌</span>Expand</button>
+            </div>
+        </div>
+    </div>
+        
+    <footer id="editor-footer">
+        <div class="timeline-left-panel" id="fixed-left-panel">
+            <div class="ruler-corner-block" id="btn-minimize">⭾</div>
+        </div>
+
+        <div class="timeline-right-panel">
+            <div class="ruler-wrap" id="ruler-container">
+                <canvas id="ruler-canvas"></canvas>
+            </div>
+            <div class="timeline-wrapper">
+                <div id="timeline-scroll">
+                    <div id="layers-area"></div>
+                </div>
+            </div>
+
+            <div class="playhead-center">
+                <div id="time-display" class="time-bubble">00:00:00:00</div>
+                <div class="playhead-line-upper"></div> 
+                <div class="playhead-line-lower"></div>
+            </div>
+        </div>
+    </footer>
+
+    <div id="action-menu-wrapper">
+        <div class="menu-action-bar" id="menu-main">
+            <div class="menu-item" onclick="openMenu('menu-edit')"><span>⚙️</span><span>Edit</span></div>
+            <div class="menu-item" onclick="openMenu('menu-audio')"><span>🎵</span><span>Audio</span></div>
+            <div class="menu-item" onclick="openMenu('menu-text')"><span>T</span><span>Text</span></div>
+            <div class="menu-item" onclick="openMenu('menu-effects')"><span>✨</span><span>Effects</span></div>
+            <div class="menu-item" id="btn-overlay-add"><span>🖼️</span><span>Overlay</span></div>
+            <div class="menu-item" onclick="openAdjustMaster()"><span>🌓</span><span>Filter</span></div>
+            <div class="menu-item" onclick="openMenu('menu-bg')"><span>🎨</span><span>Background</span></div>
+            <div class="menu-item" onclick="openMenu('menu-onlyaudio')"><span>🎙️</span><span>Only Audio</span></div>
+        </div>
+
+        <div class="menu-action-bar" id="menu-edit" style="display:none;">
+            <div class="menu-item back-btn" onclick="openMenu('menu-main')"><span>〈</span><span>Back</span></div>
+            <div class="menu-item" id="btn-split"><span>✂️</span><span>Split</span></div>
+            <div class="menu-item" onclick="openVolume()"><span>🔊</span><span>Volume</span></div>
+            <div class="menu-item" id="btn-delete"><span>🗑️</span><span>Delete</span></div>
+            <div class="menu-item" onclick="openMenu('menu-edit-speed')"><span>🏃</span><span>Speed</span></div>
+            <div class="menu-item" onclick="openMenu('menu-edit-crop')"><span>📐</span><span>Crop</span></div>
+            <div class="menu-item" id="btn-copy"><span>👯</span><span>Duplicate</span></div>
+            <div class="menu-item" onclick="openAdjustMaster()"><span>🌓</span><span>Adjust</span></div>
+            <div class="menu-item" onclick="openMenu('menu-edit-removebg')"><span>👤</span><span>Remove BG</span></div>
+            <div class="menu-item" onclick="openMenu('menu-edit-transform')"><span>🔄</span><span>Transform</span></div>
+            <div class="menu-item" onclick="openMenu('menu-edit-reframe')"><span>🎯</span><span>Reframe</span></div>
+            <div class="menu-item" onclick="openMenu('menu-edit-stabilize')"><span>⚖️</span><span>Stabilize</span></div>
+            <div class="menu-item" onclick="openMenu('menu-edit-isolate')"><span>🗣️</span><span>Isolate Voice</span></div>
+        </div>
+
+        <div class="menu-action-bar" id="menu-edit-speed" style="display:none;">
+            <div class="menu-item back-btn" onclick="openMenu('menu-edit')"><span>《</span><span>Back</span></div>
+            <div class="menu-item" id="btn-speed"><span>➡️</span><span>Normal</span></div>
+            <div class="menu-item"><span>📈</span><span>Curve</span></div>
+            <div class="menu-item"><span>⚡</span><span>Velocity</span></div>
+        </div>
+
+        <div class="menu-action-bar" id="menu-edit-crop" style="display:none;">
+            <div class="menu-item back-btn" onclick="openMenu('menu-edit')"><span>《</span><span>Back</span></div>
+            <div class="menu-item" onclick="openSliderPopup('Rotate', -45, 45, 0)"><span>🔄</span><span>Rotate</span></div>
+            <div class="menu-item"><span>📱</span><span>9:16</span></div>
+            <div class="menu-item"><span>💻</span><span>16:9</span></div>
+            <div class="menu-item"><span>⏹️</span><span>1:1</span></div>
+            <div class="menu-item"><span>↩️</span><span>Reset</span></div>
+        </div>
+
+        <div class="menu-action-bar" id="menu-edit-removebg" style="display:none;">
+            <div class="menu-item back-btn" onclick="openMenu('menu-edit')"><span>《</span><span>Back</span></div>
+            <div class="menu-item" onclick="alert('Auto Remove BG Coming Soon!')"><span>🤖</span><span>Auto</span></div>
+            <div class="menu-item"><span>🟢</span><span>Chroma Key</span></div>
+        </div>
+
+        <div class="menu-action-bar" id="menu-edit-transform" style="display:none;">
+            <div class="menu-item back-btn" onclick="openMenu('menu-edit')"><span>《</span><span>Back</span></div>
+            <div class="menu-item"><span>🔄</span><span>Rotate</span></div>
+            <div class="menu-item"><span>🪞</span><span>Mirror</span></div>
+            <div class="menu-item" onclick="openSliderPopup('Zoom', 0, 1000, 100)"><span>🔍</span><span>Zoom</span></div>
+        </div>
+
+        <div class="menu-action-bar" id="menu-edit-reframe" style="display:none;">
+            <div class="menu-item back-btn" onclick="openMenu('menu-edit')"><span>《</span><span>Back</span></div>
+            <div class="menu-item"><span>📍</span><span>Original</span></div>
+            <div class="menu-item"><span>📱</span><span>9:16</span></div>
+            <div class="menu-item"><span>💻</span><span>16:9</span></div>
+        </div>
+
+        <div class="menu-action-bar" id="menu-edit-stabilize" style="display:none;">
+            <div class="menu-item back-btn" onclick="openMenu('menu-edit')"><span>《</span><span>Back</span></div>
+            <div class="menu-item"><span>❌</span><span>None</span></div>
+            <div class="menu-item"><span>👍</span><span>Recommend</span></div>
+        </div>
+
+        <div class="menu-action-bar" id="menu-edit-isolate" style="display:none;">
+            <div class="menu-item back-btn" onclick="openMenu('menu-edit')"><span>《</span><span>Back</span></div>
+            <div class="menu-item"><span>❌</span><span>None</span></div>
+            <div class="menu-item"><span>🗣️</span><span>Keep Voice</span></div>
+            <div class="menu-item"><span>🔇</span><span>Remove Voice</span></div>
+        </div>
+
+        <div class="menu-action-bar" id="menu-audio" style="display:none;">
+            <div class="menu-item back-btn" onclick="openMenu('menu-main')"><span>《</span><span>Back</span></div>
+            <div class="menu-item" id="btn-audio-add"><span>📁</span><span>Sound</span></div>
+            <div class="menu-item" id="btn-record-add"><span>🎙️</span><span>Record</span></div>
+        </div>
+
+        <div class="menu-action-bar" id="menu-text" style="display:none;">
+            <div class="menu-item back-btn" onclick="openMenu('menu-main')"><span>《</span><span>Back</span></div>
+            <div class="menu-item" id="btn-text-add"><span>➕</span><span>Add Text</span></div>
+            <div class="menu-item"><span>🎨</span><span>Stickers</span></div>
+        </div>
+
+        <div class="menu-action-bar" id="menu-effects" style="display:none;">
+            <div class="menu-item back-btn" onclick="openMenu('menu-main')"><span>《</span><span>Back</span></div>
+            <div class="menu-item" id="btn-fx-add"><span>🎬</span><span>Video Effects</span></div>
+            <div class="menu-item"><span>🧍</span><span>Body Effect</span></div>
+        </div>
+
+        <div class="menu-action-bar" id="menu-bg" style="display:none;">
+            <div class="menu-item back-btn" onclick="openMenu('menu-main')"><span>《</span><span>Back</span></div>
+            <div class="menu-item"><span>🎨</span><span>Color</span></div>
+            <div class="menu-item"><span>🖼️</span><span>Image</span></div>
+            <div class="menu-item"><span>🌫️</span><span>Blur</span></div>
+        </div>
+
+        <div class="menu-action-bar" id="menu-onlyaudio" style="display:none;">
+            <div class="menu-item back-btn" onclick="openMenu('menu-main')"><span>《</span><span>Back</span></div>
+            <div class="menu-item"><span>🎙️</span><span>Record</span></div>
+            <div class="menu-item"><span>✂️</span><span>Split</span></div>
+            <div class="menu-item" onclick="openVolume()"><span>🔊</span><span>Volume</span></div>
+            <div class="menu-item"><span>🗑️</span><span>Delete</span></div>
+        </div>
+    </div>
+</div>
+
+<div class="vol-mini-popup" id="volume-panel">
+    <div class="vol-mini-head" id="vol-header">
+        <span class="vol-move-btn" id="vol-move-handle" style="cursor: grab; font-size: 10px; color: #888;">✥ Move</span>
+        <span class="vol-title-txt" style="pointer-events: none;">VOL & KEYFRAME</span>
+        <div style="display:flex; align-items:center;">
+            <span class="vol-reset-btn" onclick="resetVolume()" style="font-size: 10px; color: #fbbf24; cursor: pointer; margin-right: 8px;">↺ Reset</span>
+            <span class="vol-done-btn" onclick="closeVolume()">DONE</span>
+        </div>
+    </div>
+
+    <div class="vol-mini-body">
+        <div class="vol-num-box">
+            <span id="vol-display">100</span><span class="vol-pct">%</span>
+        </div>
+        
+        <div class="vol-slider-zone">
+            <div class="vol-ticks-bg" id="vol-ticks-container"></div>
+            <input type="range" id="vol-slider" min="0" max="200" value="100" oninput="updateVolume(this.value)">
+        </div>
+                    
+        <div style="display: flex; justify-content: space-between; width: 95%; margin-top: 2px; font-size: 8px; color: #666; font-weight: bold;">
+            <span>0</span>
+            <span style="color:#00d2ff; transform: translateX(-2px);">100</span>
+            <span>1000</span>
+        </div>
+
+        <div class="vol-btn-row">
+            <button id="vol-kf-btn" onclick="toggleVolumeKeyframe()">+ Add Keyframe</button>
+            <button id="vol-wave-btn" onclick="toggleWaveBox()" disabled>Wave Panel</button>
+        </div>
+
+        <div id="vol-wave-box" class="vol-wave-mini-box" style="display: none;">
+            <span style="font-size: 8px; color: #666; display: block; margin-bottom: 5px; font-weight: bold; text-align: center; letter-spacing: 0.5px;">VOLUME MOTION INTERPOLATION</span>
+            
+            <div class="vol-wave-radios">
+                <label><input type="radio" name="wave-motion" value="linear" checked onchange="changeVolumeMotion('linear')"> Linear</label>
+                <label><input type="radio" name="wave-motion" value="ease-in" onchange="changeVolumeMotion('ease-in')"> Ease In</label>
+                <label><input type="radio" name="wave-motion" value="ease-out" onchange="changeVolumeMotion('ease-out')"> Ease Out</label>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="bottom-sheet" id="adjust-master-popup">
+    <div class="sheet-header" style="padding: 0 20px;">
+        <span class="sheet-title">ADJUST</span>
+        <div style="display: flex; gap: 15px; align-items: center;">
+            <span onclick="resetAdjustMaster()" style="font-size: 11px; color: #fbbf24; cursor: pointer;">RESET</span>
+            <span class="sheet-close" onclick="closeAdjustPopup()">DONE</span>
+        </div>
+    </div>
+
+    <div class="main-scroll-row">
+        <div class="adj-item" data-tool="auto" onclick="handleSmartTool('Auto Enhance')"><span style="color:#fbbf24">🪄</span><p>Auto</p></div>
+        <div class="adj-item active" data-tool="brightness" onclick="selectAdjTool('Brightness', -50, 50, 'brightness')"><span>☀️</span><p>Brightness</p></div>
+        <div class="adj-item" data-tool="contrast" onclick="selectAdjTool('Contrast', -50, 50, 'contrast')"><span>🌓</span><p>Contrast</p></div>
+        <div class="adj-item" data-tool="saturation" onclick="selectAdjTool('Saturation', -50, 50, 'saturation')"><span>🌈</span><p>Saturation</p></div>
+        <div class="adj-item" data-tool="brilliance" onclick="selectAdjTool('Brilliance', -100, 100, 'brilliance')"><span>✨</span><p>Brilliance</p></div>
+        <div class="adj-item" data-tool="sharpen" onclick="selectAdjTool('Sharpen', 0, 100, 'sharpen')"><span>💎</span><p>Sharpen</p></div>
+        <div class="adj-item" data-tool="fade" onclick="selectAdjTool('Fade', 0, 100, 'fade')"><span>🌫️</span><p>Fade</p></div>
+        <div class="adj-item" data-tool="hue" onclick="selectAdjTool('Hue', -180, 180, 'hue')"><span>🎨</span><p>Hue</p></div>
+        <div class="adj-item" data-tool="hsl" onclick="openHSL()"><span>🌈</span><p>HSL</p></div>
+        <div class="adj-item" data-tool="graphs" onclick="openGraphs()"><span>📈</span><p>Graphs</p></div>
+    </div>
+    
+    <div class="slider-container" style="padding: 20px;">
+        <div id="master-title" style="font-size: 11px; color: #888; letter-spacing: 1.5px; margin-bottom: 5px; text-align: center;">BRIGHTNESS</div>
+        <div id="master-val-display" style="font-size: 24px; font-weight: bold; color: #fbbf24; text-align: center; margin-bottom: 10px;">0</div>
+        <input type="range" class="custom-slider" id="master-slider" min="-50" max="50" value="0" style="width: 100%;" oninput="updateAdjustValue(this.value)">
+    </div>
+</div>
+
+<div class="bottom-sheet" id="hsl-panel">
+    <div class="sheet-header" style="padding: 0 20px;">
+        <span class="sheet-title">HSL (12 COLORS)</span>
+        <div style="display: flex; gap: 15px; align-items: center;">
+            <span onclick="resetHSL()" style="font-size: 11px; color: #fbbf24; cursor: pointer;">RESET</span>
+            <span class="sheet-close" onclick="closeHSL()">DONE</span>
+        </div>
+    </div>
+    
+    <div class="hsl-color-row">
+        <div class="hsl-dot active" style="background:#ff0000" onclick="selectHSLColor('red', this)"></div>
+        <div class="hsl-dot" style="background:#ff7f00" onclick="selectHSLColor('orange', this)"></div>
+        <div class="hsl-dot" style="background:#ffcc99" onclick="selectHSLColor('skin', this)"></div>
+        <div class="hsl-dot" style="background:#ffff00" onclick="selectHSLColor('yellow', this)"></div>
+        <div class="hsl-dot" style="background:#7fff00" onclick="selectHSLColor('lime', this)"></div>
+        <div class="hsl-dot" style="background:#00ff00" onclick="selectHSLColor('green', this)"></div>
+        <div class="hsl-dot" style="background:#008080" onclick="selectHSLColor('teal', this)"></div>
+        <div class="hsl-dot" style="background:#00ffff" onclick="selectHSLColor('cyan', this)"></div>
+        <div class="hsl-dot" style="background:#0000ff" onclick="selectHSLColor('blue', this)"></div>
+        <div class="hsl-dot" style="background:#4b0082" onclick="selectHSLColor('indigo', this)"></div>
+        <div class="hsl-dot" style="background:#8b00ff" onclick="selectHSLColor('purple', this)"></div>
+        <div class="hsl-dot" style="background:#ff00ff" onclick="selectHSLColor('magenta', this)"></div>
+    </div>
+
+    <div class="slider-container" style="padding: 0 20px;">
+        <div style="width:100%; display:flex; justify-content:space-between; font-size:10px; color:#aaa;"><span>HUE</span><span id="h-val">0</span></div>
+        <input type="range" class="hsl-slider hue-track" min="-100" max="100" value="0" oninput="updateHSL('h', this.value)">
+        <div style="width:100%; display:flex; justify-content:space-between; font-size:10px; color:#aaa;"><span>SATURATION</span><span id="s-val">0</span></div>
+        <input type="range" class="hsl-slider sat-track" min="-100" max="100" value="0" oninput="updateHSL('s', this.value)">
+        <div style="width:100%; display:flex; justify-content:space-between; font-size:10px; color:#aaa;"><span>LIGHTNESS</span><span id="l-val">0</span></div>
+        <input type="range" class="hsl-slider lum-track" min="-100" max="100" value="0" oninput="updateHSL('l', this.value)">
+    </div>
+</div>
+
+<input type="file" id="file-inp" accept="video/*,image/*" style="display:none;">
+<input type="file" id="overlay-inp" accept="video/*,image/*" style="display:none;">
+<input type="file" id="audio-inp" accept="audio/*" style="display:none;">
+
+<script src="app.js"></script>
+<script src="clipqon-engine.js"></script>
+<script src="clipqon-ui-volume.js"></script>
+<script src="clipqon-ui-adjustments.js"></script>
+<script src="main.js"></script>
+    
+</body>
+</html>
